@@ -50,6 +50,11 @@ from timm.layers import (
 )
 from timm.models._manipulate import checkpoint_seq, named_apply
 
+try:
+    from habana_frameworks.torch.hpex.kernels import FusedSDPA
+except ImportError:
+    print("Not using HPU fused scaled dot-product attention kernel.")
+    FusedSDPA = None
 
 def _no_grad_trunc_normal_(tensor, mean, std, a, b):
     # Cut & paste from PyTorch official master until it's in a few official releases - RW
@@ -172,12 +177,25 @@ class Attention(nn.Module):
         q, k = self.q_norm(q), self.k_norm(k)
 
         if self.fused_attn:
-            x = F.scaled_dot_product_attention(
+            x = FusedSDPA.apply(
                 q,
                 k,
                 v,
-                dropout_p=self.attn_drop.p if self.training else 0.0,
+                None,    # ATTN Mask
+                self.attn_drop.p if self.training else 0.0,
+                False,   # Causal Mode
+                None,    # Scale
+                "None",  # SoftMax Mode
+                False,
+                None,
+                "None",
             )
+#            x = F.scaled_dot_product_attention(
+#                q,
+#                k,
+#                v,
+#                dropout_p=self.attn_drop.p if self.training else 0.0,
+#            )
         else:
             q = q * self.scale
             attn = q @ k.transpose(-2, -1)

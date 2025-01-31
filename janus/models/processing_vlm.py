@@ -20,6 +20,7 @@
 from dataclasses import dataclass
 from typing import Dict, List
 
+import numpy as np
 import torch
 from PIL.Image import Image
 from transformers import LlamaTokenizerFast
@@ -375,7 +376,8 @@ class VLChatProcessor(ProcessorMixin):
             n_images.append(len(prepare.num_image_tokens))
             seq_lens.append(len(prepare))
 
-        input_token_max_len = max(seq_lens)
+        # Pad to multiples of 256
+        input_token_max_len = int(np.ceil(max(seq_lens) / 256)) * 256
         max_n_images = max(1, max(n_images))
 
         batched_input_ids = torch.full(

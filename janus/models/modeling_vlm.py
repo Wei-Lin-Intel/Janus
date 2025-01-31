@@ -32,6 +32,7 @@ from transformers.configuration_utils import PretrainedConfig
 from janus.models.clip_encoder import CLIPVisionTower
 from janus.models.projector import MlpProjector
 
+from optimum.habana.transformers.models import GaudiLlamaForCausalLM
 
 class vision_head(torch.nn.Module):
     def __init__(self, params):
@@ -216,7 +217,8 @@ class MultiModalityCausalLM(MultiModalityPreTrainedModel):
         )
 
         language_config = config.language_config
-        self.language_model = LlamaForCausalLM(language_config)
+        self.language_model = GaudiLlamaForCausalLM(language_config)
+#        self.language_model = LlamaForCausalLM(language_config)
 
     def prepare_inputs_embeds(
         self,
